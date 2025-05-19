@@ -1,0 +1,82 @@
+---
+services:
+  postgres-kt-auth:
+    container_name: postgres-kt-auth
+    image: postgres:14
+    restart: on-failure:3
+    environment:
+      POSTGRES_USER: ${POSTGRESQL_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRESQL_PASSWORD}
+      POSTGRES_DB: ${POSTGRESQL_DB}
+    networks:
+      - gateway-net
+    volumes:
+      - postgres-kt-auth:/var/lib/postgresql/data
+
+  kt-auth-api:
+    image: kt-auth-api:latest
+    restart: on-failure:3
+    environment:
+      PROFILE: prod
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_HOST: ${MAIL_HOST}
+      MAIL_PORT: ${MAIL_PORT}
+      MAIL_AUTH_ENABLED: ${MAIL_AUTH_ENABLED}
+      MAIL_STARTTLS_ENABLED: ${MAIL_STARTTLS_ENABLED}
+      SERVICE_URL: ${SERVICE_URL}
+      ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET}
+      API_KEY: ${API_KEY}
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET}
+    networks:
+      - gateway-net
+    depends_on:
+      - postgres-kt-auth
+
+  postgres-kt-itinerary:
+    image: postgres:14
+    restart: on-failure:3
+    environment:
+      POSTGRES_USER: itinerary_api
+      POSTGRES_PASSWORD: mypwd
+      POSTGRES_DB: kt_itinerary_api
+    networks:
+      - gateway-net
+    volumes:
+      - postgres-kt-itinerary:/var/lib/postgresql/data
+
+  kt-itinerary-api:
+    image: kt-itinerary-api:latest
+    restart: on-failure:3
+    environment:
+      PROFILE: local
+      POSTGRESQL_URL: ${POSTGRESQL_URL}
+      POSTGRESQL_USERNAME: ${POSTGRESQL_USERNAME}
+      POSTGRESQL_PASSWORD: ${POSTGRESQL_PASSWORD}
+      ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET}
+      API_KEY: ${API_KEY}
+    networks:
+      - gateway-net
+    depends_on:
+      - postgres-kt-itinerary
+
+  nginx-gateway:
+    container_name: nginx-gateway
+    restart: on-failure:3
+    image: gateway-nginx:latest
+    networks:
+      - gateway-net
+    ports:
+      - "80:80"
+    depends_on:
+      - kt-itinerary-api
+      - kt-auth-api
+
+volumes:
+  postgres-kt-auth:
+  postgres-kt-itinerary:
+
+networks:
+  gateway-net:

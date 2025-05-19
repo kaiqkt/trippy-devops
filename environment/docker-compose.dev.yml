@@ -1,0 +1,80 @@
+---
+services:
+  mailhog:
+    image: mailhog/mailhog
+    container_name: mailhog
+    ports:
+      - "8025:8025"
+    restart: always
+    networks:
+      - gateway-net
+
+  postgres-kt-auth:
+    container_name: postgres-kt-auth
+    image: postgres:latest
+    restart: always
+    environment:
+      POSTGRES_USER: auth_api
+      POSTGRES_PASSWORD: mypwd
+      POSTGRES_DB: kt_auth_api
+    networks:
+      - gateway-net
+    volumes:
+      - postgres-kt-auth:/var/lib/postgresql/data
+
+  kt-auth-api:
+    container_name: kt-auth-api
+    image: kt-auth-api:latest
+    restart: always
+    environment:
+      PROFILE: local
+    depends_on:
+      - postgres-kt-auth
+      - mailhog
+    networks:
+      - gateway-net
+
+  postgres-kt-itinerary:
+    container_name: postgres-kt-itinerary
+    image: postgres:latest
+    restart: always
+    environment:
+      POSTGRES_USER: itinerary_api
+      POSTGRES_PASSWORD: mypwd
+      POSTGRES_DB: kt_itinerary_api
+    networks:
+      - gateway-net
+    volumes:
+      - postgres-kt-itinerary:/var/lib/postgresql/data
+
+  kt-itinerary-api:
+    container_name: kt-itinerary-api
+    image: kt-itinerary-api:latest
+    restart: always
+    environment:
+      PROFILE: local
+    depends_on:
+      - postgres-kt-itinerary
+    networks:
+      - gateway-net
+
+  nginx-gateway:
+    container_name: nginx-gateway
+    restart: on-failure:3
+    image: gateway-nginx:latest
+    environment:
+      KT_AUTH_API_TOKEN: world
+    networks:
+      - gateway-net
+    ports:
+      - "80:80"
+    depends_on:
+      - kt-itinerary-api
+      - kt-auth-api
+
+volumes:
+  postgres-kt-auth:
+  postgres-kt-itinerary:
+
+networks:
+  gateway-net:
